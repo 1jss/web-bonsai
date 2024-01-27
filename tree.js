@@ -19,7 +19,13 @@ function stringToInteger(str) {
 function getSeed() {
   var param = new URLSearchParams(window.location.search).get("seed");
   if (isNaN(Number(param))) return stringToInteger(param);
-  return param ? parseInt(param) : 0;
+  return param ? parseInt(param) : new Date().getTime();
+}
+
+// Get season from the URL
+function getSeason() {
+  var param = new URLSearchParams(window.location.search).get("season");
+  return param ?? "summer";
 }
 
 // Random angle between midpoint-range/2 and midpoint+range/2
@@ -30,6 +36,8 @@ function randomAngle(seed, midpoint, range) {
 }
 
 let globalSeed = getSeed();
+console.log("Seed: " + globalSeed);
+let season = getSeason();
 
 // Main rendering function
 function populateScene() {
@@ -64,12 +72,11 @@ function populateScene() {
     var lineAngle = randomAngle(globalSeed++, 0, 20); // Staring angle of the trunk
     // Width of the trunk at the bottom of the tree
     var currentLineWidth = 3 * iterations - 6;
-    // // Change in trunk width for each iteration. The trunk will decrease in width interations+1 times
+    // Change in trunk width for each iteration. The trunk will decrease in width interations+1 times
     var trunkChange = currentLineWidth / (iterations + 1);
     context.lineCap = "round";
 
-
-    function summerGradient(lineWidth) {
+    function summerTrunkGradient(lineWidth) {
       let gradient = context.createLinearGradient(
         xPos - Math.ceil(lineWidth / 2),
         yPos - Math.ceil(lineWidth / 4),
@@ -81,7 +88,31 @@ function populateScene() {
       return gradient;
     }
 
-    function winterGradient(lineWidth) {
+    function springTrunkGradient(lineWidth) {
+      let gradient = context.createLinearGradient(
+        xPos - Math.ceil(lineWidth / 2),
+        yPos - Math.ceil(lineWidth / 4),
+        xPos + Math.ceil(lineWidth / 2),
+        yPos + Math.ceil(lineWidth / 4)
+      );
+      gradient.addColorStop(0, "#d8b682");
+      gradient.addColorStop(1, "#997543");
+      return gradient;
+    }
+
+    function fallTrunkGradient(lineWidth) {
+      let gradient = context.createLinearGradient(
+        xPos - Math.ceil(lineWidth / 2),
+        yPos - Math.ceil(lineWidth / 4),
+        xPos + Math.ceil(lineWidth / 2),
+        yPos + Math.ceil(lineWidth / 4)
+      );
+      gradient.addColorStop(0, "#b28b50");
+      gradient.addColorStop(1, "#664f2d");
+      return gradient;
+    }
+
+    function winterTrunkGradient(lineWidth) {
       let gradient = context.createLinearGradient(
         xPos + Math.ceil(lineWidth / 4),
         yPos - Math.ceil(lineWidth / 2),
@@ -98,11 +129,19 @@ function populateScene() {
     // Draw a trunk segment
     function drawTrunk() {
       let lineWidth = Math.max(1, Math.ceil(currentLineWidth)); // Set the line width
-  
-      context.lineWidth = lineWidth; // Set the line width
-      context.strokeStyle = summerGradient(lineWidth);
-      // context.strokeStyle = winterGradient(lineWidth);
 
+      context.lineWidth = lineWidth; // Set the line width
+      if (season === "summer") {
+        context.strokeStyle = summerTrunkGradient(lineWidth);
+      } else if (season === "spring") {
+        context.strokeStyle = springTrunkGradient(lineWidth);
+      } else if (season === "fall") {
+        context.strokeStyle = fallTrunkGradient(lineWidth);
+      } else if (season === "winter") {
+        context.strokeStyle = winterTrunkGradient(lineWidth);
+      } else {
+        context.strokeStyle = summerTrunkGradient(lineWidth);
+      }
       context.beginPath();
       context.moveTo(xPos, yPos);
       xPos += lineLength * Math.sin(lineAngle);
@@ -112,21 +151,63 @@ function populateScene() {
       context.closePath();
     }
 
+    function summerLeafGradient(lineLength) {
+      let gradient = context.createLinearGradient(
+        xPos,
+        yPos,
+        xPos + lineLength * Math.sin(lineAngle),
+        yPos - lineLength * Math.cos(lineAngle)
+      );
+      gradient.addColorStop(0, "#676d41");
+      gradient.addColorStop(1, "#97a140");
+      return gradient;
+    }
+
+    function springLeafGradient(lineLength) {
+      let gradient = context.createLinearGradient(
+        xPos,
+        yPos,
+        xPos + lineLength * Math.sin(lineAngle),
+        yPos - lineLength * Math.cos(lineAngle)
+      );
+      gradient.addColorStop(0, "#b0cb56");
+      gradient.addColorStop(1, "#d6dda6");
+      return gradient;
+    }
+
+    function fallLeafGradient(lineLength) {
+      let gradient = context.createLinearGradient(
+        xPos,
+        yPos,
+        xPos + lineLength * Math.sin(lineAngle),
+        yPos - lineLength * Math.cos(lineAngle)
+      );
+      gradient.addColorStop(0, "#f44b1f");
+      gradient.addColorStop(1, "#f8b733");
+      return gradient;
+    }
+
     // Draw a leaf as a thick line
     function drawLeaf() {
-      var lineLength = iterations + 1;
-      let leafGradient = context.createLinearGradient(
-        xPos,
-        yPos - lineLength / 2,
-        xPos,
-        yPos + lineLength / 2
-      );
-      leafGradient.addColorStop(0, "#97A160");
-      leafGradient.addColorStop(1, "#676d41");
+      var lineLength = 0;
+      if (season === "summer") {
+        lineLength = iterations + 1;
+      } else if (season === "spring") {
+        lineLength = iterations - 1;
+      } else if (season === "fall") {
+        lineLength = iterations + 1;
+      }
+
       context.beginPath();
       context.moveTo(xPos, yPos);
       context.lineWidth = lineLength / 3;
-      context.strokeStyle = leafGradient;
+      if (season === "summer") {
+        context.strokeStyle = summerLeafGradient(lineLength);
+      } else if (season === "spring") {
+        context.strokeStyle = springLeafGradient(lineLength);
+      } else if (season === "fall") {
+        context.strokeStyle = fallLeafGradient(lineLength);
+      }
       xPos += lineLength * Math.sin(lineAngle);
       yPos -= lineLength * Math.cos(lineAngle);
       context.lineTo(xPos, yPos);
@@ -160,7 +241,7 @@ function populateScene() {
         // Save current state to the stack
         stack.push([xPos, yPos, lineAngle]);
       } else if (char == "]") {
-        drawLeaf();
+        if (season !== "winter") drawLeaf();
         // Restore previous state from the stack
         var coords = stack.pop();
         xPos = coords[0];
@@ -179,26 +260,34 @@ function populateScene() {
   var context = canvas.getContext("2d");
   var backgroundColor = "#333";
 
-  // Fill the canvas with a light yellow color
-  context.fillStyle = backgroundColor;
-  context.fillRect(0, 0, canvas.width, canvas.height);
+  // Fill the canvas with a background color
+  function prapareCanvas() {
+    context.fillStyle = backgroundColor;
+    context.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Draw a box for the trees to grow in
-  context.fillStyle = "#fbf7c2"; // summer
-  // context.fillStyle = "#445"; // winter
-  context.fillRect(0, canvas.height - 380, canvas.width, 280);
-
-  // Center tree
-  drawTree(context, 512, 5);
-
-  // Draw multiple iterations for different sizes and positions
-  // for (var z = 3; z < 6; z++) {
-  //   drawTree(context, 20 * z * z, z);
-  // }
+    // Draw a box for the trees to grow in
+    if (season === "summer") {
+      context.fillStyle = "#fbf7c2";
+    } else if (season === "spring") {
+      context.fillStyle = "#eeffe5";
+    } else if (season === "fall") {
+      context.fillStyle = "#f9e495";
+    } else if (season === "winter") {
+      context.fillStyle = "#445";
+    }
+    context.fillRect(0, canvas.height - 380, canvas.width, 280);
+  }
 
   // Cover the trunk with a rectangle
-  context.fillStyle = backgroundColor;
-  context.fillRect(0, canvas.height - 100, canvas.width, 100);
+  function coverTrunk() {
+    context.fillStyle = backgroundColor;
+    context.fillRect(0, canvas.height - 100, canvas.width, 100);
+  }
+
+  // Center tree
+  prapareCanvas();
+  drawTree(context, 512, 5);
+  coverTrunk();
 }
 
 document.addEventListener("DOMContentLoaded", function () {
