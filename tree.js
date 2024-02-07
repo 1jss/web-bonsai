@@ -35,8 +35,10 @@ function randomAngle(seed, midpoint, range) {
   return pseudoRand(seed) * rangeR - rangeR / 2 + midpointR;
 }
 
-let globalSeed = getSeed();
-console.log("Seed: " + globalSeed);
+let startingSeed = getSeed();
+let currentSeed = startingSeed;
+
+console.log("Seed: " + currentSeed);
 let season = getSeason();
 
 // Main rendering function
@@ -65,11 +67,11 @@ function populateScene() {
   }
 
   // Function to draw the generated L-system string
-  function drawTree(context, xPos, iterations) {
+  function drawTree(context, xPos, iterations, lineLength = 2) {
     var tree = generateIteration("X", 0, iterations); // Generate the L-system string
     var yPos = 400; // Start at the bottom of the canvas
-    var lineLength = 2; // Length of each line segment
-    var lineAngle = randomAngle(globalSeed++, 0, 20); // Staring angle of the trunk
+    // var lineLength = 2; // Length of each line segment
+    var lineAngle = randomAngle(currentSeed++, 0, 20); // Staring angle of the trunk
     // Width of the trunk at the bottom of the tree
     var currentLineWidth = 3 * iterations - 6;
     // Change in trunk width for each iteration. The trunk will decrease in width interations+1 times
@@ -225,17 +227,17 @@ function populateScene() {
         drawTrunk();
       } else if (char == "-") {
         // Turn left with a slight random variation
-        if (pseudoRand(globalSeed++) < 0.3) {
-          lineAngle += randomAngle(globalSeed++, 20, 10);
+        if (pseudoRand(currentSeed++) < 0.3) {
+          lineAngle += randomAngle(currentSeed++, 20, 10);
         } else {
-          lineAngle -= randomAngle(globalSeed++, 20, 10);
+          lineAngle -= randomAngle(currentSeed++, 20, 10);
         }
       } else if (char == "+") {
         // Turn right with a slight random variation
-        if (pseudoRand(globalSeed++) < 0.3) {
-          lineAngle -= randomAngle(globalSeed++, 20, 10);
+        if (pseudoRand(currentSeed++) < 0.3) {
+          lineAngle -= randomAngle(currentSeed++, 20, 10);
         } else {
-          lineAngle += randomAngle(globalSeed++, 20, 10);
+          lineAngle += randomAngle(currentSeed++, 20, 10);
         }
       } else if (char == "[") {
         // Save current state to the stack
@@ -282,9 +284,15 @@ function populateScene() {
   function coverTrunk() {
     context.fillStyle = backgroundColor;
     context.fillRect(0, canvas.height - 100, canvas.width, 100);
+    // write the current seed
+    context.font = "14px Helvetica";
+    seedText = "."+startingSeed;
+    context.fillStyle = "#444";
+    context.fillText(seedText, canvas.width - context.measureText(seedText).width-2, canvas.height - 86);
   }
 
   // Center tree
+  currentSeed = startingSeed;
   prapareCanvas();
   drawTree(context, 512, 5);
   coverTrunk();
@@ -295,6 +303,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 document.addEventListener("click", function () {
-  console.log("Seed: " + globalSeed);
+  startingSeed = currentSeed;
+  console.log("Seed: " + currentSeed);
   populateScene();
 });
